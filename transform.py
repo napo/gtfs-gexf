@@ -22,11 +22,11 @@ GONDOLA_TYPE = '6'
 FUNICULAR_TYPE = '7'
 
 # Root of the extracted GTFS file
-DATA_ROOT = 'mta/'
+DATA_ROOT = 'data/'
 
 # You can filter the type of stop converted by placing the route types
 # you're interested in in this list.
-CONVERT_ROUTE_TYPES = [SUBWAY_TYPE]
+CONVERT_ROUTE_TYPES = [BUS_TYPE]
 
 # This defines an optional mapping on station names. Because stations
 # are uniquely identified by their station name, this can be used to
@@ -63,10 +63,22 @@ class GEXF(object):
 
         graph = self.doc.createElement('graph')
         graph.setAttribute('defaultedgetype', 'undirected')
-
+        
+        self.attributes = graph.appendChild(self.doc.createElement('attributes'))
         self.nodes = graph.appendChild(self.doc.createElement('nodes'))
         self.edges = graph.appendChild(self.doc.createElement('edges'))
-
+        self.attributes.setAttribute('class','node')
+        self.attributes.setAttribute('mode','static')
+        attribute = self.doc.createElement('attribute')
+        attribute.setAttribute('id','lon')
+        attribute.setAttribute('title','longitude')
+        attribute.setAttribute('type','double')
+        self.attributes.appendChild(attribute)
+        attribute = self.doc.createElement('attribute')
+        attribute.setAttribute('id','lat')
+        attribute.setAttribute('title','latitude')
+        attribute.setAttribute('type','double')
+        self.attributes.appendChild(attribute)
         gexf.appendChild(graph)
         self.doc.appendChild(gexf)
 
@@ -74,11 +86,19 @@ class GEXF(object):
         node = self.doc.createElement('node')
         node.setAttribute('id', node_id)
         node.setAttribute('label', label)
-        
+        attvalues = self.doc.createElement('attvalues')
+        attvalue = self.doc.createElement('attvalue')
+        attvalue.setAttribute('for','lon')
+        attvalue.setAttribute('value',x)
+        attvalues.appendChild(attvalue)
+        attvalue = self.doc.createElement('attvalue')
+        attvalue.setAttribute('for','lat')
+        attvalue.setAttribute('value',y)     
+        attvalues.appendChild(attvalue)
         viz_position = self.doc.createElement('viz:position')
         viz_position.setAttribute('x', x)
         viz_position.setAttribute('y', y)
-
+        node.appendChild(attvalues)
         node.appendChild(viz_position)
         self.nodes.appendChild(node)
 
@@ -145,22 +165,21 @@ def main():
     stops_used = set(DISCARD_STATIONS)
     for stop in stops_csv:
         if stop['stop_id'] in stops:
-            stop_id = get_stop_id(stop['stop_id'])
-            #name = get_stop_name(stop['stop_name'])
-            #stop_map[stop['stop_id']] = name
+            stop_id = stop['stop_id']
             name = stop['stop_name']
+            lat = stop['stop_lat']
+            lon = stop['stop_lon']
             #if name not in stops_used:
             if stop_id not in stops_used:
-                gexf.add_node(stop_id, name, stop['stop_lon'], stop['stop_lat'])
+                gexf.add_node(stop_id, name, lon, lat)
                 stops_used.add(stop_id)
-    #print 'stop_map', len(stop_map)
 
     edges_used = set()
     for (start_stop_id, end_stop_id), color in edges.iteritems():
         #start_stop_name = stop_map[start_stop_id]
         #end_stop_name = stop_map[end_stop_id]
-        start_stop_id = get_stop_id(start_stop_id)
-        end_stop_id = get_stop_id(end_stop_id)
+        #start_stop_id = get_stop_id(start_stop_id)
+        #end_stop_id = get_stop_id(end_stop_id)
         #if start_stop_name in DISCARD_STATIONS or end_stop_name in DISCARD_STATIONS:
         #    continue
         edge = min((start_stop_id, end_stop_id), (end_stop_id, start_stop_id))
